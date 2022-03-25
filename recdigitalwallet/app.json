@@ -1,0 +1,6 @@
+{
+  "name": "REC Digital Platform",
+  "displayName": "REC Digital Platform",
+  "API_URL": "https://fineinvest.io/rec_app_api/api/",
+  "API_mode": "Testnet"
+}
