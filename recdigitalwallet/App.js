@@ -6,7 +6,7 @@
  * @flow strict-local
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 
 import Menu from './screens/Menu';
 import SignUp from './screens/SignUp';
@@ -34,11 +34,53 @@ import SignUpOTPVerification from './screens/SignUpOTPVerification';
 import ForgetPassword from './screens/ForgetPassword';
 import ForgetOTPVerification from './screens/ForgetOTPVerification';
 import Login from './screens/Login';
-import {createStackNavigator} from '@react-navigation/stack';
-import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import SplashScreen from 'react-native-splash-screen';
 
 import Tabs from './navigation/tabs';
+import PushNotification from "react-native-push-notification";
+
+
+const PushNotificationConfigure = () => {
+
+
+  const notificationListener = React.useRef();
+
+
+  useEffect(() => {
+
+    // notificationListener.current = PushNotification.onNotification(response=>{console.log(response)})
+
+    PushNotification.configure({
+
+      onRegister: function (token) {
+        console.log('TOKEN:', token);
+      },
+
+
+      onNotification: function (notification) {
+        console.log('recieved')
+        if (notification.foreground) {
+          PushNotification.localNotification({
+            title: notification.title,
+            message: notification.message
+          });
+        }
+      },
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
+      popInitialNotification: true,
+      requestPermissions: true,
+    })
+
+
+  }, [])
+  return null;
+}
 
 const theme = {
   ...DefaultTheme,
@@ -52,11 +94,24 @@ const Stack = createStackNavigator();
 // https://fineinvestapi.unimaxmining.com/public/api/
 // https://fineinvest.io/rec_app_api/api/
 const App = () => {
+
+
   setTimeout(() => {
     SplashScreen.hide();
   }, 2000);
+
+
+
+
+
+
+
+
+
+
   return (
     <NavigationContainer theme={theme}>
+      <PushNotificationConfigure />
       <Stack.Navigator
         screenOptions={{
           headerShown: false,

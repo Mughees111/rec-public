@@ -23,6 +23,8 @@ import axios from 'axios';
 import APPJSON from '../app.json';
 
 const SignUpOTPVerification = ({navigation, route}) => {
+
+
   const [showPassword, setShowPassword] = React.useState(false);
   const [phone_no, setPhoneNo] = React.useState(route.params.phone_no);
   const [OTP1, setOTP1] = React.useState(null);
@@ -37,6 +39,7 @@ const SignUpOTPVerification = ({navigation, route}) => {
 
   async function VerifyOTP(data, navigation) {
     setLoading(true);
+    console.log(data)
     let axiosConfig = {
       headers: {
         'Content-Type': 'application/json;charset=UTF-8',
@@ -46,6 +49,7 @@ const SignUpOTPVerification = ({navigation, route}) => {
     axios
       .post(APPJSON.API_URL + 'verifyOTP', data, axiosConfig)
       .then(response => {
+        console.log(response)
         setLoading(false);
         if (response.data.response != undefined && response.data.response) {
           setToken(response.data.token);

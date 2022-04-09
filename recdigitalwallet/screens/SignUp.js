@@ -22,7 +22,9 @@ import APPJSON from '../app.json';
 import {Picker} from '@react-native-picker/picker';
 import counrties from '../countries.json';
 
+
 const SignUp = ({navigation}) => {
+
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [areas, setAreas] = React.useState([]);
@@ -31,6 +33,7 @@ const SignUp = ({navigation}) => {
   const [modalVisible, setModalVisible] = React.useState(false);
   const [selectedCountryCode, selectCountryCode] = React.useState('+1');
 
+  
   async function RegisterOTP(number, navigation) {
     console.log(number);
     setLoading(true);
@@ -43,6 +46,8 @@ const SignUp = ({navigation}) => {
     axios
       .post(APPJSON.API_URL + 'registerOTP', number, axiosConfig)
       .then(response => {
+        console.log('response = ')
+        console.log(response);
         setLoading(false);
         if (response.data.response != undefined && response.data.response) {
           setToken(response.data.token);
@@ -61,6 +66,8 @@ const SignUp = ({navigation}) => {
         }
       });
   }
+
+
   const storeData = async value => {
     try {
       await AsyncStorage.setItem('token', value);

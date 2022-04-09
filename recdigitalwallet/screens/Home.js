@@ -7,8 +7,9 @@ import {
   FlatList,
   TouchableOpacity,
   BackHandler,
+  Alert
 } from 'react-native';
-import {COLORS, SIZES, FONTS, icons, images} from '../constants';
+import { COLORS, SIZES, FONTS, icons, images } from '../constants';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -16,8 +17,13 @@ import Toast from 'react-native-simple-toast';
 import APPJSON from '../app.json';
 import PTRView from 'react-native-pull-to-refresh';
 import TextTicker from 'react-native-text-ticker';
+import PushNotification from "react-native-push-notification";
 
-const Home = ({navigation}) => {
+
+
+const Home = ({ navigation }) => {
+
+
   const dummyBalances = {
     trc20_rec: 0,
     eth_rate: 0,
@@ -32,22 +38,127 @@ const Home = ({navigation}) => {
     trc20_wallet_address: '',
     erc20_wallet_address: '',
   };
+
+
   const [user, setUser] = React.useState([]);
   const [isActive, setActive] = React.useState(true);
   const [balances, setBalances] = React.useState(dummyBalances);
   const [loading, setLoading] = React.useState(false);
   const [FlashNews, setFlashNews] = React.useState('');
+
+
   let interval;
   // if (isActive) {
   //   interval = setInterval(check, 5 * 60000);
   // }
+
+
   React.useEffect(() => {
+    getPushNotificationToken();
     getBalances();
     check();
     return () => {
       setActive(false);
     };
   }, []);
+
+
+
+  function getPushNotificationToken() {
+
+    PushNotification.createChannel(
+      {
+        channelId: "8193", // (required)
+        channelName: "REC", // (required)
+        channelDescription: "Wallet App", // (optional) default: undefined.
+        soundName: "default", // (optional) See `soundName` parameter of `localNotification` function
+        importance: 4, // (optional) default: 4. Int value of the Android notification importance
+        vibrate: true, // (optional) default: true. Creates the default vibration patten if true.
+      },
+      (created) => console.log(`createChannel returned '${created}'`) // (optional) callback returns whether the channel was created, false means it already existed.
+    );
+
+
+    PushNotification.configure({
+      // (optional) Called when Token is generated (iOS and Android)
+      onRegister: async function (push_id) {
+
+        let token = await AsyncStorage.getItem('token');
+        const reqObj = {
+          token: token,
+          push_id: push_id.token
+        }
+        console.log(reqObj)
+        let axiosConfig = {
+          headers: {
+            'Content-Type': 'application/json;charset=UTF-8',
+            'Access-Control-Allow-Origin': '*',
+          },
+        };
+        axios.post(APPJSON.API_URL + 'do_store_push_id', reqObj, axiosConfig)
+          .then(response => {
+            console.log(response)
+          })
+          .catch(err => {
+            console.log(err)
+          })
+
+      },
+
+      // (required) Called when a remote is received or opened, or local notification is opened
+      onNotification: function (notification) {
+        console.log('recieved')
+        console.log(notification)
+        if (notification.foreground) {
+
+          PushNotification.localNotification({
+            title: notification.title,
+            message: notification.message
+          });
+        }
+
+        // process the notification
+
+        // (required) Called when a remote is received or opened, or local notification is opened
+        // notification.finish(PushNotificationIOS.FetchResult.NoData);
+      },
+
+      // (optional) Called when Registered Action is pressed and invokeApp is false, if true onNotification will be called (Android)
+      // onAction: function (notification) {
+      //   console.log("ACTION:", notification.action);
+      //   console.log("NOTIFICATION:", notification);
+
+      //   // process the action
+      // },
+
+      // (optional) Called when the user fails to register for remote notifications. Typically occurs when APNS is having issues, or the device is a simulator. (iOS)
+      onRegistrationError: function (err) {
+        console.error(err.message, err);
+      },
+
+      // IOS ONLY (optional): default: all - Permissions to register.
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
+
+      // Should the initial notification be popped automatically
+      // default: true
+      popInitialNotification: true,
+
+      /**
+       * (optional) default: true
+       * - Specified if permissions (ios) and token (android and ios) will requested or not,
+       * - if not, you must call PushNotificationsHandler.requestPermissions() later
+       * - if you are not using remote notification or do not have Firebase installed, use this:
+       *     requestPermissions: Platform.OS === 'ios'
+       */
+      requestPermissions: true,
+    });
+  }
+
+
   async function getBalances() {
     if (loading) {
       return false;
@@ -61,7 +172,7 @@ const Home = ({navigation}) => {
       },
     };
     axios
-      .post(APPJSON.API_URL + 'balance', {token: token}, axiosConfig)
+      .post(APPJSON.API_URL + 'balance', { token: token }, axiosConfig)
       .then(response => {
         setLoading(false);
         if (response.data !== undefined && response.data.erc20 >= 0) {
@@ -78,6 +189,9 @@ const Home = ({navigation}) => {
     setFlashNews('');
     newsFlashes();
   }
+
+
+
   async function check() {
     let token = await AsyncStorage.getItem('token');
     let axiosConfig = {
@@ -87,7 +201,7 @@ const Home = ({navigation}) => {
       },
     };
     axios
-      .post(APPJSON.API_URL + 'user', {token: token}, axiosConfig)
+      .post(APPJSON.API_URL + 'user', { token: token }, axiosConfig)
       .then(response => {
         if (response.data.id != undefined && response.data.id) {
           setUser(response.data);
@@ -103,6 +217,9 @@ const Home = ({navigation}) => {
         navigation.navigate('Login');
       });
   }
+
+
+
   async function newsFlashes() {
     setFlashNews('loading flash news...');
     let token = await AsyncStorage.getItem('token');
@@ -113,7 +230,7 @@ const Home = ({navigation}) => {
       },
     };
     axios
-      .post(APPJSON.API_URL + 'newsflashes', {token: token}, axiosConfig)
+      .post(APPJSON.API_URL + 'newsflashes', { token: token }, axiosConfig)
       .then(response => {
         if (response.data != undefined && response.data) {
           let news = '';
@@ -140,6 +257,36 @@ const Home = ({navigation}) => {
         // Toast.show('error occured.', Toast.LONG);
       });
   }
+
+
+  async function sendDummyPush() {
+
+    let token = await AsyncStorage.getItem('token');
+    const reqObj = {
+      token: token,
+      message: {
+        "title": "Hello",
+        "description": "Notification from the home screen"
+      }
+    }
+    let axiosConfig = {
+      headers: {
+        'Content-Type': 'application/json;charset=UTF-8',
+        'Access-Control-Allow-Origin': '*',
+      },
+    };
+
+    axios.post(APPJSON.API_URL + 'send_notif_live', reqObj, axiosConfig)
+      .then(response => {
+        console.log(response)
+      })
+      .catch(err => {
+        console.log(err)
+      })
+
+  }
+
+
   let featuresData = [
     {
       id: 1,
@@ -200,6 +347,7 @@ const Home = ({navigation}) => {
       .toFixed(2)
       .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
   }
+
   function renderHeader() {
     return (
       <View
@@ -237,10 +385,12 @@ const Home = ({navigation}) => {
             />
           </TouchableOpacity>
         </View>
-        <View style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Text style={{fontSize: 18}}>Dashboard</Text>
-        </View>
-        <View style={{alignItems: 'center', justifyContent: 'center'}}>
+        <TouchableOpacity
+          
+          onLongPress={() => { sendDummyPush() }} style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 18 }}>Dashboard</Text>
+        </TouchableOpacity>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <TouchableOpacity
             style={{
               height: 40,
@@ -276,15 +426,15 @@ const Home = ({navigation}) => {
             </View>
           </TouchableOpacity>
         </View>
-      </View>
+      </View >
     );
   }
 
   function renderBanner() {
     return (
       <View
-        style={{padding: 20, justifyContent: 'center', alignItems: 'center'}}>
-        <View style={{flexDirection: 'row'}}>
+        style={{ padding: 20, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row' }}>
           <Text
             style={{
               borderWidth: 2,
@@ -296,13 +446,13 @@ const Home = ({navigation}) => {
             {loading
               ? '0.0000'
               : '$ ' +
-                currencyFormat(
-                  parseFloat(featuresData[0].usd_balance) +
-                    parseFloat(balances.rec_to_usd) +
-                    parseFloat(featuresData[1].usd_balance) +
-                    parseFloat(featuresData[2].usd_balance) +
-                    parseFloat(featuresData[3].usd_balance),
-                )}
+              currencyFormat(
+                parseFloat(featuresData[0].usd_balance) +
+                parseFloat(balances.rec_to_usd) +
+                parseFloat(featuresData[1].usd_balance) +
+                parseFloat(featuresData[2].usd_balance) +
+                parseFloat(featuresData[3].usd_balance),
+              )}
           </Text>
           <View
             style={{
@@ -331,10 +481,10 @@ const Home = ({navigation}) => {
           }}>
           <Image
             source={icons.speaker}
-            style={{width: 20, height: 20, marginRight: 7}}
+            style={{ width: 20, height: 20, marginRight: 7 }}
           />
           <TextTicker
-            style={{fontSize: 10}}
+            style={{ fontSize: 10 }}
             duration={20000}
             loop
             bounce
@@ -379,26 +529,26 @@ const Home = ({navigation}) => {
               borderRadius: 20,
               padding: 15,
             }}>
-            <View style={{flexDirection: 'column'}}>
-              <View style={{flexDirection: 'row', marginBottom: 25}}>
+            <View style={{ flexDirection: 'column' }}>
+              <View style={{ flexDirection: 'row', marginBottom: 25 }}>
                 <Image
                   source={images.AppLogo}
-                  style={{height: 40, width: 40}}
+                  style={{ height: 40, width: 40 }}
                 />
-                <View style={{marginLeft: 10}}>
-                  <Text style={{fontSize: 18}}>REC</Text>
-                  <Text style={{fontSize: 10}}>REC Asset</Text>
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={{ fontSize: 18 }}>REC</Text>
+                  <Text style={{ fontSize: 10 }}>REC Asset</Text>
                 </View>
               </View>
-              <View style={{flexDirection: 'row'}}>
-                <View style={{width: '48%'}}>
-                  <Text style={{fontSize: 10}}>REC Balance</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <View style={{ width: '48%' }}>
+                  <Text style={{ fontSize: 10 }}>REC Balance</Text>
                   <View
                     style={{
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading ? '0.0000' : currencyFormat(balances.trc20_rec)}
                     </Text>
                   </View>
@@ -413,14 +563,14 @@ const Home = ({navigation}) => {
                     opacity: 0.2,
                   }}
                 />
-                <View style={{width: '48%'}}>
+                <View style={{ width: '48%' }}>
                   <View
                     style={{
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                       marginTop: 10,
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : '$ ' + currencyFormat(balances.rec_to_usd)}
@@ -431,7 +581,7 @@ const Home = ({navigation}) => {
             </View>
           </View>
         </TouchableOpacity>
-        <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           <TouchableOpacity
             activeOpacity={1}
             style={{
@@ -439,29 +589,30 @@ const Home = ({navigation}) => {
               width: '48%',
             }}
             onPress={() =>
-              navigation.navigate('Wallet', {wallet: featuresData[0]})
-            }>
+              navigation.navigate('Wallet', { wallet: featuresData[0] })
+            }
+            >
             <View
               style={{
                 backgroundColor: COLORS.btnColor,
                 borderRadius: 20,
                 padding: 15,
               }}>
-              <View style={{flexDirection: 'column'}}>
-                <View style={{flexDirection: 'row', marginBottom: 25}}>
+              <View style={{ flexDirection: 'column' }}>
+                <View style={{ flexDirection: 'row', marginBottom: 25 }}>
                   <Image
                     source={featuresData[0].icon}
-                    style={{height: 40, width: 40}}
+                    style={{ height: 40, width: 40 }}
                   />
-                  <View style={{marginLeft: 10}}>
-                    <Text style={{fontSize: 18}}>{featuresData[0].title}</Text>
-                    <Text style={{fontSize: 10}}>
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={{ fontSize: 18 }}>{featuresData[0].title}</Text>
+                    <Text style={{ fontSize: 10 }}>
                       {featuresData[0].description}
                     </Text>
                   </View>
                 </View>
                 <View>
-                  <Text style={{fontSize: 10}}>
+                  <Text style={{ fontSize: 10 }}>
                     {featuresData[0].title} Balance
                   </Text>
                   <View
@@ -469,7 +620,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : currencyFormat(featuresData[0].balance)}
@@ -489,7 +640,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : '$ ' + currencyFormat(featuresData[0].usd_balance)}
@@ -507,7 +658,7 @@ const Home = ({navigation}) => {
               width: '48%',
             }}
             onPress={() =>
-              navigation.navigate('Wallet', {wallet: featuresData[1]})
+              navigation.navigate('Wallet', { wallet: featuresData[1] })
             }>
             <View
               style={{
@@ -515,21 +666,21 @@ const Home = ({navigation}) => {
                 borderRadius: 20,
                 padding: 15,
               }}>
-              <View style={{flexDirection: 'column'}}>
-                <View style={{flexDirection: 'row', marginBottom: 25}}>
+              <View style={{ flexDirection: 'column' }}>
+                <View style={{ flexDirection: 'row', marginBottom: 25 }}>
                   <Image
                     source={featuresData[1].icon}
-                    style={{height: 40, width: 40}}
+                    style={{ height: 40, width: 40 }}
                   />
-                  <View style={{marginLeft: 10}}>
-                    <Text style={{fontSize: 18}}>{featuresData[1].title}</Text>
-                    <Text style={{fontSize: 10}}>
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={{ fontSize: 18 }}>{featuresData[1].title}</Text>
+                    <Text style={{ fontSize: 10 }}>
                       {featuresData[1].description}
                     </Text>
                   </View>
                 </View>
                 <View>
-                  <Text style={{fontSize: 10}}>
+                  <Text style={{ fontSize: 10 }}>
                     {featuresData[1].title} Balance
                   </Text>
                   <View
@@ -537,7 +688,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : currencyFormat(featuresData[1].balance)}
@@ -557,7 +708,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : '$ ' + currencyFormat(featuresData[1].usd_balance)}
@@ -582,7 +733,7 @@ const Home = ({navigation}) => {
               marginBottom: 30,
             }}
             onPress={() =>
-              navigation.navigate('Wallet', {wallet: featuresData[2]})
+              navigation.navigate('Wallet', { wallet: featuresData[2] })
             }>
             <View
               style={{
@@ -590,21 +741,21 @@ const Home = ({navigation}) => {
                 borderRadius: 20,
                 padding: 15,
               }}>
-              <View style={{flexDirection: 'column'}}>
-                <View style={{flexDirection: 'row', marginBottom: 25}}>
+              <View style={{ flexDirection: 'column' }}>
+                <View style={{ flexDirection: 'row', marginBottom: 25 }}>
                   <Image
                     source={featuresData[2].icon}
-                    style={{height: 40, width: 40}}
+                    style={{ height: 40, width: 40 }}
                   />
-                  <View style={{marginLeft: 10}}>
-                    <Text style={{fontSize: 18}}>{featuresData[2].title}</Text>
-                    <Text style={{fontSize: 10}}>
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={{ fontSize: 18 }}>{featuresData[2].title}</Text>
+                    <Text style={{ fontSize: 10 }}>
                       {featuresData[2].description}
                     </Text>
                   </View>
                 </View>
                 <View>
-                  <Text style={{fontSize: 10}}>
+                  <Text style={{ fontSize: 10 }}>
                     {featuresData[2].title} Balance
                   </Text>
                   <View
@@ -612,7 +763,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : currencyFormat(featuresData[2].balance)}
@@ -632,7 +783,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : '$ ' + currencyFormat(featuresData[2].usd_balance)}
@@ -651,7 +802,7 @@ const Home = ({navigation}) => {
               marginBottom: 30,
             }}
             onPress={() =>
-              navigation.navigate('Wallet', {wallet: featuresData[3]})
+              navigation.navigate('Wallet', { wallet: featuresData[3] })
             }>
             <View
               style={{
@@ -659,21 +810,21 @@ const Home = ({navigation}) => {
                 borderRadius: 20,
                 padding: 15,
               }}>
-              <View style={{flexDirection: 'column'}}>
-                <View style={{flexDirection: 'row', marginBottom: 25}}>
+              <View style={{ flexDirection: 'column' }}>
+                <View style={{ flexDirection: 'row', marginBottom: 25 }}>
                   <Image
                     source={featuresData[3].icon}
-                    style={{height: 40, width: 40}}
+                    style={{ height: 40, width: 40 }}
                   />
-                  <View style={{marginLeft: 10}}>
-                    <Text style={{fontSize: 18}}>{featuresData[3].title}</Text>
-                    <Text style={{fontSize: 10}}>
+                  <View style={{ marginLeft: 10 }}>
+                    <Text style={{ fontSize: 18 }}>{featuresData[3].title}</Text>
+                    <Text style={{ fontSize: 10 }}>
                       {featuresData[3].description}
                     </Text>
                   </View>
                 </View>
                 <View>
-                  <Text style={{fontSize: 10}}>
+                  <Text style={{ fontSize: 10 }}>
                     {featuresData[3].title} Balance
                   </Text>
                   <View
@@ -681,7 +832,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : currencyFormat(featuresData[3].balance)}
@@ -701,7 +852,7 @@ const Home = ({navigation}) => {
                       flexDirection: 'row',
                       justifyContent: 'space-between',
                     }}>
-                    <Text style={{fontSize: 17}}>
+                    <Text style={{ fontSize: 17 }}>
                       {loading
                         ? '0.0000'
                         : '$ ' + currencyFormat(featuresData[3].usd_balance)}
@@ -747,8 +898,8 @@ const Home = ({navigation}) => {
                 borderRadius: 50,
               }}
               colors={['transparent', COLORS.emerald]}
-              start={{x: 0.0, y: 1}}
-              end={{x: 1, y: 0}}>
+              start={{ x: 0.0, y: 1 }}
+              end={{ x: 1, y: 0 }}>
               <Text
                 style={{
                   paddingHorizontal: 40,
@@ -757,13 +908,13 @@ const Home = ({navigation}) => {
                 Finexgm MT4 Trading
               </Text>
             </LinearGradient>
-            <View style={{flexDirection: 'row'}}>
-              <Text style={{fontSize: 30, color: COLORS.white}}>FINE</Text>
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={{ fontSize: 30, color: COLORS.white }}>FINE</Text>
               <Text
-                style={{fontSize: 30, color: COLORS.red, fontFamily: 'serif'}}>
+                style={{ fontSize: 30, color: COLORS.red, fontFamily: 'serif' }}>
                 X
               </Text>
-              <Text style={{fontSize: 30, color: COLORS.white}}>GM</Text>
+              <Text style={{ fontSize: 30, color: COLORS.white }}>GM</Text>
             </View>
           </View>
         </TouchableOpacity>

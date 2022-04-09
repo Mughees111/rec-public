@@ -7,14 +7,16 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
-import {COLORS, SIZES, FONTS, icons, images} from '../constants';
+import { COLORS, SIZES, FONTS, icons, images } from '../constants';
 import QRCode from 'react-native-qrcode-image';
 import Clipboard from '@react-native-clipboard/clipboard';
 import Toast from 'react-native-simple-toast';
 import APPJSON from '../app.json';
 
-const Receive = ({navigation, route}) => {
+const Receive = ({ navigation, route }) => {
   const [wallet, setWallet] = React.useState(route.params.wallet);
+
+
   function renderHeader() {
     return (
       <View
@@ -46,10 +48,10 @@ const Receive = ({navigation, route}) => {
             />
           </TouchableOpacity>
         </View>
-        <View style={{alignItems: 'center', justifyContent: 'center'}}>
-          <Text style={{fontSize: 18}}>{wallet.description} wallet</Text>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 18 }}>{wallet.description} wallet</Text>
         </View>
-        <View style={{alignItems: 'center', justifyContent: 'center'}}>
+        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
           <TouchableOpacity
             style={{
               height: 40,
@@ -106,7 +108,7 @@ const Receive = ({navigation, route}) => {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <Text style={{marginTop: 0, marginBottom: 10, fontSize: 15}}>
+          <Text style={{ marginTop: 0, marginBottom: 10, fontSize: 15 }}>
             {wallet.wallet_type} Wallet | QR
           </Text>
           <View
@@ -118,8 +120,8 @@ const Receive = ({navigation, route}) => {
             }}>
             <Image
               source={icons.info}
-              style={{height: 20, width: 20, margin: 10, tintColor: COLORS.yellow}}></Image>
-            <Text style={{fontSize: 10}}>
+              style={{ height: 20, width: 20, margin: 10, tintColor: COLORS.yellow }}></Image>
+            <Text style={{ fontSize: 10 }}>
               {wallet.title} is {wallet.wallet_type} Based Blochchain wallet.
               Please send only {wallet.wallet_type} Tokens in this wallet.
             </Text>
@@ -158,10 +160,10 @@ const Receive = ({navigation, route}) => {
             marginTop: 20,
             justifyContent: 'center',
           }}>
-          <Text style={{color: COLORS.white, fontSize: 14}}>
+          <Text style={{ color: COLORS.white, fontSize: 14 }}>
             {wallet.title} Wallet Address
           </Text>
-          <View
+          {/* <View
             style={{
               marginVertical: 20,
               borderRadius: 10,
@@ -172,14 +174,14 @@ const Receive = ({navigation, route}) => {
               alignItems: 'center',
               flexDirection: 'row',
             }}>
-            <Text  onPress={() => {
+            <Text onPress={() => {
               Clipboard.setString(wallet.wallet_address);
               Toast.show('wallet address copied');
-              }}>
+            }}>
               {wallet.wallet_address}
             </Text>
-          </View>
-          <TouchableOpacity
+          </View> */}
+          {/* <TouchableOpacity
             onPress={() => {
               console.log(wallet);
               Clipboard.setString(wallet.wallet_address);
@@ -194,8 +196,8 @@ const Receive = ({navigation, route}) => {
               alignItems: 'center',
               borderRadius: 15,
             }}>
-            <Text style={{color: COLORS.white}}>Copy Wallet Address</Text>
-          </TouchableOpacity>
+            <Text style={{ color: COLORS.white }}>Copy Wallet Address</Text>
+          </TouchableOpacity> */}
         </View>
       </View>
     );
@@ -211,7 +213,7 @@ const Receive = ({navigation, route}) => {
   }
 
   return (
-    <SafeAreaView style={{flex: 1, backgroundColor: COLORS.primary}}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.primary }}>
       {renderPromos()}
     </SafeAreaView>
   );
